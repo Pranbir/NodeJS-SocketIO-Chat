@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>NodeJS-SocketIO-Chat by Pranbir Sarkar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" /><link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+
+<style>
+    .flexcroll{
+            overflow-y:scroll !important;
+           }
+.flexcroll{
+    scrollbar-face-color: #367CD2;
+    scrollbar-shadow-color: #FFFFFF;
+    scrollbar-highlight-color: #FFFFFF;
+    scrollbar-3dlight-color: #FFFFFF;
+    scrollbar-darkshadow-color: #FFFFFF;
+    scrollbar-track-color: #FFFFFF;
+    scrollbar-arrow-color: #FFFFFF;
+}
+
+/* Let's get this party started */
+.flexcroll::-webkit-scrollbar {
+    width: 12px;
+}
+ 
+/* Track */
+.flexcroll::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3); 
+    -webkit-border-radius: 10px;
+    border-radius: 10px;
+}
+ 
+/* Handle */
+.flexcroll::-webkit-scrollbar-thumb {
+    -webkit-border-radius: 10px;
+    border-radius: 10px;
+    background: rgb(23, 63, 70); 
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5); 
+}
+.btn{
+    padding: 3px;
+}
+.messages {
+outline: 0 !important;
+}
+.messages:focus {
+outline: 0 !important;
+}
+</style>
+
+</head>
+<body>
+
+<div id="myOverlay" class="overlay">
+        <div><h1 style="text-align: center; color:#aaa;">Welcome</h1></div>
+        <div class="overlay-content">
+            <input type="text" placeholder="Enter Your Name..." id="username">
+            <button id="setUserName"><i class="fa fa-sign-in"></i></button>
+        </div>
+        <div class="container" style="position: relative; top: 30%;    overflow: hidden;">
+                <div class="row">
+                    <div class="form-group" style="text-align: center;">	
+                    <div class="col-md-2 box col-md-offset-1" style="height:108px;"><h3 style="position: relative;top: 25%;color:#428bca;">Profile Picture :</h3></div>
+                    <div class="col-md-2 box"><label class="btn btn-primary"><img style="width:100px; height:100px" src="u1.jpg" alt="..." class="img-thumbnail img-check check"><input type="radio" name="chk1" id="item4" value="u1.jpg" class="hidden" autocomplete="off" checked></label></div>
+                    <div class="col-md-2 box"><label class="btn btn-primary"><img style="width:100px; height:100px" src="u2.jpg" alt="..." class="img-thumbnail img-check"><input type="radio" name="chk1" id="item4" value="u2.jpg" class="hidden" autocomplete="off"></label></div>
+                    <div class="col-md-2 box"><label class="btn btn-primary"><img style="width:100px; height:100px" src="u3.jpg" alt="..." class="img-thumbnail img-check"><input type="radio" name="chk1" id="item4" value="u3.jpg" class="hidden" autocomplete="off"></label></div>
+                    <div class="col-md-2 box"><label class="btn btn-primary"><img style="width:100px; height:100px" src="u4.jpg" alt="..." class="img-thumbnail img-check"><input type="radio" name="chk1" id="item4" value="u4.jpg" class="hidden" autocomplete="off"></label></div>
+                    </div>
+                    <div class="clearfix"></div>
+                    
+                </div>	
+            </div>
+      </div>
+
+<div class="chat" id="chatbox" style="display: none;">
+        <div class="chat-title">
+          <h1>Chat Room</h1>
+          <h2>Built by PRANBIR SARKAR</h2>
+          <figure class="avatar">
+            <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/156381/profile/profile-80.jpg" /></figure>
+        </div>
+        <div class="messages">
+          <div class="messages-content flexcroll" ></div>
+        </div>
+        <div class="message-box">
+          <textarea type="text" class="message-input" placeholder="Type message..."></textarea>
+          <button type="submit" class="message-submit">Send</button>
+        </div>
+        <div class="message-box-personal" style="display:none;" >
+          <textarea type="text" class="message-input-personal" placeholder="Type personal message to userA..."></textarea>
+          <button type="submit" class="message-submit-personal">Send Direct Message</button>
+        </div>
+      
+      </div>
+      <div class="bg"></div>
+      
+      <script src="/socket.io/socket.io.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/malihu-custom-scrollbar-plugin/3.1.3/jquery.mCustomScrollbar.concat.min.js"></script>
+      <script src="script.js"></script>
+      
+
+
+    <script>
+        
+        let userName="",dpLink="";
+        var socket;
+        $(function () {
+            socket = io();       
+
+            $('.img-check').click(function(e) {
+                $('.img-check').not(this).removeClass('check').siblings('input').prop('checked',false);
+                $(this).addClass('check').siblings('input').prop('checked',true);
+            });
+            
+
+            socket.on('userAdded', function(data){
+                $('<div style="overflow: hidden;width:100%;text-align:center;"><p>'+data.name+' joined the chat room</p></div>').appendTo($('.mCSB_container'));
+                
+            });
+
+            socket.on('userLeft', function(data){
+                $('<div style="overflow: hidden;width:100%;text-align:center;"><p>'+data.name+' left the chat room</p></div>').appendTo($('.mCSB_container'));
+                
+            });
+
+            socket.on('msg', function(msg){
+                console.log(msg);
+                $('<div class="message new"><figure class="avatar"><img src="'+msg.dpLink+'" /></figure> <span class="userMsg" socketId="'+msg.socketId+'" instaUser="'+msg.user+'" onClick="addInputBox(this)"><strong class="instaUser" style="color:#5dc189;">'+msg.user+': </strong>'+msg.msg+' </span></div>').appendTo($('.mCSB_container')).addClass('new');
+                 setDate();
+                
+            });
+
+            socket.on('pm', function(msg){
+                console.log(msg);
+                $('<div class="message new"><figure class="avatar"><img src="'+msg.dpLink+'" /></figure> <span class="userMsg" socketId="'+msg.socketId+'" instaUser="'+msg.user+'" onClick="addInputBox(this)"><strong class="instaUser" style="color:#5dc189;">'+msg.user+': </strong>'+msg.msg+' <strong style="color:#a0893f;">(Personal)</strong></span></div>').appendTo($('.mCSB_container')).addClass('new');
+                 setDate();
+                
+            });
+            
+
+
+            $('.message-submit').click(function(e) {
+            e.preventDefault();
+            let msg = $('.message-input').val();
+            if (msg == ""){ return false;}
+            socket.emit("msg",{user : userName,msg : msg, dpLink:dpLink});
+            $('<div class="message message-personal">' + msg + '</div>').appendTo($('.mCSB_container')).addClass('new');
+            setDate();
+            $('.message-input').val(null);
+            });
+
+            $('.message-input').on('keydown', function(e) {
+                if (e.which == 13) {
+                        let msg = $('.message-input').val();
+                        if (msg == ""){ return false;}
+                        socket.emit("msg",{user : userName,msg : msg, dpLink:dpLink});
+                        $('<div class="message message-personal">' + msg + '</div>').appendTo($('.mCSB_container')).addClass('new');
+                        setDate();
+                        $('.message-input').val(null);
+                        return false;
+
+                    }
+            });
+
+            
+        $('#setUserName').click(function(e){
+            e.preventDefault();
+            userName= $('#username').val();
+            dpLink = $("input[name='chk1']:checked"). val();
+            console.log("Username :",userName);
+            console.log("Profile Pic Link :",dpLink);
+            $('#myOverlay').hide();
+            $('#chatbox').show();
+            socket.emit("userAdded",{name : userName});
+            
+        });
+
+        
+        $('body').on('keydown', '#message-input-personal', function(e) {
+         //   console.log(e.which);
+                if (e.which == 13) {
+                        let msg = $('.message-input-personal').val();
+                        if (msg == ""){ return false;}
+                        let socketId = $(this).attr('socketId');
+                        console.log($(this));
+                        console.log(socketId);
+                        sendMsg(socketId);
+                        return false;
+                    }
+            });
+
+            
+    });
+    
+    function addInputBox(e){
+            let socketId = e.getAttribute('socketid');
+            let instaUser = e.getAttribute('instaUser');
+            console.log(socketId);
+            $('.message-box-personal').show();
+            $('.message-box-personal').html(
+                '<textarea type="text" socketId="'+socketId+'" class="message-input-personal" id="message-input-personal" placeholder="Type personal message for '+instaUser+'..."></textarea><button type="submit" class="message-submit-personal" onClick="sendMsg(\''+socketId+'\',\''+instaUser+'\')">Send Direct Message</button>'
+            );
+        }
+        
+        function sendMsg(socketId,instaUser){
+            let msg = $('.message-input-personal').val();
+            socket.emit("pm",{user : userName, msg : msg, dpLink : dpLink, toSocketId : socketId});
+            $('<div class="message message-personal">' + msg + ' <strong style="color: #b99d45;">(Personal message to '+instaUser+')</strong></div>').appendTo($('.mCSB_container')).addClass('new');
+            setDate();
+            $('.message-input-personal').val(null);
+            $('.message-box-personal').hide();
+        }
+
+          
+        </script>
+</body>
+</html>
